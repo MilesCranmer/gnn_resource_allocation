@@ -150,7 +150,7 @@ def get_data(
 
 
 def get_snr_mapping(snr_map_fname="spec_measurement.npz"):
-    snr_mapping = np.load("spec_measurement.npz")
+    snr_mapping = np.load(snr_map_fname, allow_pickle=True)
     snr_mapping = pd.DataFrame(
         {
             "zspec": snr_mapping.f.zspec,
