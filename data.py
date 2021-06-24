@@ -39,6 +39,11 @@ s = u.s
 
 DATA_DIR = None
 
+if DATA_DIR is None:
+    raise ValueError(
+        "You need to set the global variable DATA_DIR in data.py to the directory of your halos_*.h5 data."
+    )
+
 params = pd.read_csv(
     "latin_hypercube_params.txt", names="Om Ob h ns s8".split(" "), sep=" "
 )
@@ -46,10 +51,6 @@ params = pd.read_csv(
 
 def get_raw_data(sim, high_mass_cutoff=3e13):
     global DATA_DIR
-    if DATA_DIR is None:
-        raise ValueError(
-            "You need to set the global variable DATA_DIR to the directory of your halos_*.h5 data."
-        )
     data = pd.read_hdf(DATA_DIR + f"halos_{sim}.h5", "df")
     data.query(f"M14 < {high_mass_cutoff/1e14}", inplace=True)
     return data
