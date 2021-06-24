@@ -28,6 +28,7 @@ from astropy import units as u
 from matplotlib import pyplot as plt
 from itertools import product
 import torch
+from tqdm.auto import tqdm
 
 h = u.littleh
 Mpc = u.Mpc
@@ -187,6 +188,7 @@ def get_snr_mapping(snr_map_fname="spec_measurement.npz"):
 def assemble_training_data(sims=range(1000), subsample=1e-6):
     all_data = []
     all_cparams = []
+    print("Loading")
     for sim in sims:
         data, cparams = get_data(sim, subsample=subsample)
 
@@ -203,21 +205,21 @@ def get_dataloader(
     batch_size=2,
     cols=["x", "y", "z", "vx", "vy", "vz", "M14", "redshift"],
 ):
-    data, cparams = assemble_training_data(sims, subsample)
-    data.x /= 1000
-    data.y /= 1000
-    data.z /= 1000
-    data.vx /= 1000
-    data.vy /= 1000
-    data.vz /= 1000
-
     graphs = []
-    for i in sims:
-        x = data.query(f"sim == {i}")
+    for sim in tqdm(sims):
+        data, cparams = get_data(sim, subsample=subsample)
+        data.x /= 1000
+        data.y /= 1000
+        data.z /= 1000
+        data.vx /= 1000
+        data.vy /= 1000
+        data.vz /= 1000
+        x = data
+
         graphs.append(
             tg.data.Data(
                 x=torch.tensor(np.array(x[cols])).float(),
-                y=torch.tensor(cparams[[i]]).float(),
+                y=torch.tensor(cparams).float(),
             )
         )
 
