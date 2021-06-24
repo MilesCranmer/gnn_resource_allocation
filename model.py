@@ -1,12 +1,12 @@
 import torch
 from torch.functional import F
 from torch import nn
-from torch_scatter import scatter_mean
+from torch_scatter import scatter_mean, scatter_sum
 from torch_geometric.nn import MetaLayer
 
 
-global_aggregation = scatter_sum
-node_aggregation = scatter_sum
+global_aggregation = scatter_sum  # scatter_mean
+node_aggregation = scatter_sum  # scatter_mean
 
 
 class MLP(nn.Module):
