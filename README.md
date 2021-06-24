@@ -4,7 +4,7 @@
 
 Check out the paper [here](https://arxiv.org/abs/2106.09761).
 
-PyTorch code for the forward model of our algorithm can be found in this repository in the file `model.py`.
+PyTorch code for the forward model of our algorithm can be found in this repository in the file `model.py`. To train the model, execute `train.py`.
 
 Data required to train this model can be found [here](https://app.globus.org/file-manager?origin_id=75a68b36-a6c0-11eb-92d8-6b08dd67ff48&origin_path=%2F)
 
