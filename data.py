@@ -1,18 +1,3 @@
-# ---
-# jupyter:
-#   jupytext:
-#     formats: ipynb,py:light
-#     text_representation:
-#       extension: .py
-#       format_name: light
-#       format_version: '1.5'
-#       jupytext_version: 1.4.2
-#   kernelspec:
-#     display_name: gnn_allocation
-#     language: python
-#     name: gnn_allocation
-# ---
-
 # Default units:
 #
 # Mpc/h, Msun/h, km/s.
