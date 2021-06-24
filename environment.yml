@@ -24,6 +24,8 @@ dependencies:
   - tqdm
   - pip==21
   - pip:
+    - sacred
+    - pytorch-lightning
     - accelerate
     - h5py
     - git+https://github.com/MilesCranmer/astropy
