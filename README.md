@@ -1,4 +1,6 @@
-# Official Implementation of Unsupervised Resource Allocation with Graph Neural Networks
+# Unsupervised Resource Allocation with Graph Neural Networks
+
+![](https://github.com/MilesCranmer/gnn_resource_allocation/blob/master/schematic.svg)
 
 Check out the paper [here](https://arxiv.org/abs/2106.09761).
 
