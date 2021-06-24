@@ -1,7 +1,6 @@
 import torch
 from torch.functional import F
 from torch import nn
-import einops as E
 from torch_scatter import scatter_mean
 from torch_geometric.nn import MetaLayer
 
