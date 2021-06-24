@@ -5,6 +5,10 @@ from torch_scatter import scatter_mean
 from torch_geometric.nn import MetaLayer
 
 
+global_aggregation = scatter_sum
+node_aggregation = scatter_sum
+
+
 class MLP(nn.Module):
     def __init__(self, n_in, n_out, hidden=100, nlayers=2, layer_norm=False):
         super().__init__()
@@ -13,6 +17,8 @@ class MLP(nn.Module):
             layers.append(nn.Linear(hidden, hidden))
             layers.append(nn.ReLU())
         layers.append(nn.Linear(hidden, n_out))
+        if layer_norm:
+            layers.append(nn.LayerNorm(n_out))
         self.mlp = nn.Sequential(*layers)
 
     def forward(self, x):
@@ -22,7 +28,7 @@ class MLP(nn.Module):
 class EdgeModel(torch.nn.Module):
     def __init__(self, hidden):
         super(EdgeModel, self).__init__()
-        self.mlp = MLP(hidden * 4, hidden)
+        self.mlp = MLP(hidden * 4, hidden, layer_norm=True)
 
     def forward(self, src, dest, edge_attr, u, batch):
         # source, target: [E, F_x], where E is the number of edges.
@@ -36,8 +42,8 @@ class EdgeModel(torch.nn.Module):
 class NodeModel(torch.nn.Module):
     def __init__(self, hidden):
         super(NodeModel, self).__init__()
-        self.node_mlp_1 = MLP(hidden * 2, hidden)
-        self.node_mlp_2 = MLP(hidden * 3, hidden)
+        self.node_mlp_1 = MLP(hidden * 2, hidden, layer_norm=True)
+        self.node_mlp_2 = MLP(hidden * 3, hidden, layer_norm=True)
 
     def forward(self, x, edge_index, edge_attr, u, batch):
         # x: [N, F_x], where N is the number of nodes.
@@ -48,7 +54,7 @@ class NodeModel(torch.nn.Module):
         row, col = edge_index
         out = torch.cat([x[row], edge_attr], dim=1)
         out = self.node_mlp_1(out)
-        out = scatter_mean(out, col, dim=0, dim_size=x.size(0))
+        out = node_aggregation(out, col, dim=0, dim_size=x.size(0))
         out = torch.cat([x, out, u[batch]], dim=1)
         return x + self.node_mlp_2(out)
 
@@ -56,7 +62,7 @@ class NodeModel(torch.nn.Module):
 class GlobalModel(torch.nn.Module):
     def __init__(self, hidden):
         super(GlobalModel, self).__init__()
-        self.global_mlp = MLP(hidden * 2, hidden)
+        self.global_mlp = MLP(hidden * 2, hidden, layer_norm=True)
 
     def forward(self, x, edge_index, edge_attr, u, batch):
         # x: [N, F_x], where N is the number of nodes.
@@ -64,20 +70,20 @@ class GlobalModel(torch.nn.Module):
         # edge_attr: [E, F_e]
         # u: [B, F_u]
         # batch: [N] with max entry B - 1.
-        out = torch.cat([u, scatter_mean(x, batch, dim=0)], dim=1)
+        out = torch.cat([u, global_aggregation(x, batch, dim=0)], dim=1)
         return u + self.global_mlp(out)
 
 
 class GNN(torch.nn.Module):
-    def __init__(self, hidden, n_in=1, n_edge=3, n_out=1, decode_on="node"):
+    def __init__(self, hidden, n_in=1, n_edge=3, n_out=1, decode_on="node", blocks=5):
         super(self.__class__, self).__init__()
-        self.node_enc = MLP(n_in, hidden)
-        self.edge_enc = MLP(n_edge, hidden)
+        self.node_enc = MLP(n_in, hidden, layer_norm=True)
+        self.edge_enc = MLP(n_edge, hidden, layer_norm=True)
         self.decoder = MLP(hidden, n_out)
         self.ops = nn.ModuleList(
             [
                 MetaLayer(EdgeModel(hidden), NodeModel(hidden), GlobalModel(hidden))
-                for _ in range(5)
+                for _ in range(blocks)
             ]
         )
         self.decode_on = decode_on
@@ -85,7 +91,7 @@ class GNN(torch.nn.Module):
 
     def forward(self, graph):
         x = self.node_enc(graph.x[:, [3]])  # Only take M14
-        pos = graph.x[:, :3]
+        pos = graph.x[:, :3]  # Relative position between halos.
         adj = graph.edge_index
         e = self.edge_enc(pos[adj[0]] - pos[adj[1]])
 
@@ -117,8 +123,8 @@ class GNNAllocation(nn.Module):
 
     def __init__(
         self,
-        n_in=5,  # position, Mass
-        n_out=5,
+        n_in,  # e.g., position, Mass
+        n_out,  # e.g., Om, s8, etc
         n_v=100,
         n_e=100,
         dim=3,
@@ -129,32 +135,38 @@ class GNNAllocation(nn.Module):
         layer_norm=False,
     ):
         super(self.__class__, self).__init__()
-        self.allocator = GNN(hidden=hidden, n_out=1, decode_on="node")
-        self.predictor = GNN(hidden=hidden, n_out=n_out, decode_on="global")
+        self.allocator = GNN(
+            hidden=hidden, n_out=1, decode_on="node", blocks=n_messages
+        )
+        self.predictor = GNN(
+            hidden=hidden, n_out=n_out, decode_on="global", blocks=n_messages
+        )
 
     def forward(self, graph, snr_model):
         orig_graph = graph.clone()
 
         n = graph.x.shape[0]
         M14 = graph.x[:, [3]].clone()
-        true_M = M14 + 14
+        true_M = torch.log10(M14 * 1e14)
         true_z = graph.x[:, [4]].clone()
         time1 = torch.ones_like(true_M)
         obs_std1 = snr_model(torch.cat((true_M, time1, true_z), dim=1))
-        Mstd1 = torch.exp(obs_std1[:, [0]])
-        zstd1 = torch.exp(obs_std1[:, [1]])
+        Mstd1 = torch.exp(np.log(10) * obs_std1[:, [0]])
+        zstd1 = torch.exp(np.log(10) * obs_std1[:, [1]])
 
         graph = orig_graph.clone()
         graph.x[:, [3]] += torch.randn_like(Mstd1) * Mstd1
         graph.x[:, [4]] += torch.randn_like(zstd1) * zstd1
 
-        time2 = F.softplus(self.allocator(graph)) * 10 + time1
+        time2 = (
+            time1 + torch.sigmoid(self.allocator(graph) - 3) * 59
+        )  # Up to a maximum of 60 minutes per source.
 
         obs_std2 = snr_model(torch.cat((true_M, time2, true_z), dim=1))
         Mstd2 = torch.exp(obs_std2[:, [0]])
         zstd2 = torch.exp(obs_std2[:, [1]])
 
-        graph = orig_graph.clone()
+        graph = orig_graph
         graph.x = torch.cat(
             (
                 graph.x[:, :3],
@@ -165,4 +177,10 @@ class GNNAllocation(nn.Module):
         )
 
         predictions = self.predictor(graph)
-        return predictions
+        return predictions, {
+            "time": time2,
+            "Mstd1": Mstd1,
+            "zstd1": zstd1,
+            "Mstd2": Mstd2,
+            "zstd2": zstd2,
+        }
