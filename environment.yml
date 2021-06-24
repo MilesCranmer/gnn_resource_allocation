@@ -13,7 +13,6 @@ dependencies:
   - numpy
   - pandas
   - pytorch=1.7.1
-  - tensorflow
   - torchvision==0.8.2
   - torchaudio==0.7.2
   - pytorch-lightning
@@ -21,15 +20,10 @@ dependencies:
   - matplotlib
   - scikit-learn
   - scipy
-  - tensorboard
   - pytables
   - tqdm
   - pip==21
   - pip:
-    - celluloid
-    - sacred
+    - accelerate
     - h5py
-    - icecream
-    - jupytext
     - git+https://github.com/MilesCranmer/astropy
-    - "neptune-contrib[monitoring]"
