@@ -20,9 +20,9 @@ pip install git+https://github.com/MilesCranmer/astropy
 
 If you are using `conda`, and have CUDA version 11.0 and cuDNN version 8.0, you can create a duplicate of our env, using:
 ```bash
-./create_env.sh gnn-allocation
+./create_env.sh gnn_allocation
 ```
-which will create a new environment called `gnn-allocation`. This uses PyTorch 1.7.1, though it is likely to work for other versions if you decide to modify `create_env.sh` and `environment.yml`.
+which will create a new environment called `gnn_allocation`. This uses PyTorch 1.7.1, though it is likely to work for other versions if you decide to modify `create_env.sh` and `environment.yml`.
 
 You will then need to install Pylians manually. To do this, check out the
 [repo](https://github.com/franciscovillaescusa/Pylians3),
