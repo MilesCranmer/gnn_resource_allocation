@@ -4,11 +4,9 @@ import sacred
 import pickle as pkl
 import numpy as np
 import matplotlib.patches as patches
-import einops as E
 from typing import Tuple, Optional, Union
 from tqdm.auto import trange, tqdm
 from torch.utils.data import DataLoader, random_split, TensorDataset
-from model import *
 from torch_scatter import scatter_mean, scatter_sum
 from torch import Tensor
 from torch import nn, optim
@@ -22,8 +20,11 @@ from matplotlib.pyplot import *
 from matplotlib import pyplot as plt
 from importlib import reload
 from functools import partial
-from data import get_data, get_snr_mapping, get_dataloader, get_cosmology_objs, DATA_DIR
 from accelerate import Accelerator
+
+# Local imports
+from model import *
+from data import get_data, get_snr_mapping, get_dataloader, get_cosmology_objs, DATA_DIR
 
 # +
 ex = Experiment("gnn_allocation")
@@ -264,7 +265,6 @@ def run(
         )
 
     graphgen = partial(tg.nn.knn_graph, k=5)
-    # graphgen = partial(tg.nn.radius_graph, r=0.003)
 
     field_of_view = 15 / 2  # Actually this is the radius, so divide by 2
 
