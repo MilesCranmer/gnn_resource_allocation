@@ -20,10 +20,7 @@
 # Need to install my astropy branch: https://github.com/MilesCranmer/astropy
 
 import torch
-
 import torch_geometric as tg
-
-# +
 import pandas as pd
 import numpy as np
 from astropy.cosmology import FlatLambdaCDM, z_at_value
