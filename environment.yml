@@ -1,0 +1,35 @@
+name: gnn_allocation
+channels:
+  - pytorch
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.8
+  - cudatoolkit=11.0
+  - einops
+  - ffmpeg
+  - jupyter
+  - jupyterlab
+  - numpy
+  - pandas
+  - pytorch=1.7.1
+  - tensorflow
+  - torchvision==0.8.2
+  - torchaudio==0.7.2
+  - pytorch-lightning
+  - networkx
+  - matplotlib
+  - scikit-learn
+  - scipy
+  - tensorboard
+  - pytables
+  - tqdm
+  - pip==21
+  - pip:
+    - celluloid
+    - sacred
+    - h5py
+    - icecream
+    - jupytext
+    - git+https://github.com/MilesCranmer/astropy
+    - "neptune-contrib[monitoring]"
